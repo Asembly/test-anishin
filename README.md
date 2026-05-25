@@ -49,3 +49,42 @@ xlim([-Tl Tl]); grid on;
 subplot(3,2,3:4);
 plot(t_c, c8, 'LineWidth', 2);
 xlim([-2*tau 2*T]); grid on;
+
+
+%2
+
+pkg load signal;
+
+Fs = 200;
+A = 1;
+tau = 2;
+Tl = 10;
+t = -Tl:1/Fs:Tl;
+
+s = zeros(size(t));
+s(abs(t) <= tau/2) = A;
+
+c = xcorr(s, s) / Fs;
+
+N = 2^13;
+freq = (-N/2:N/2-1) * (Fs/N);
+
+S_f = fftshift(fft(s, N)) / Fs;
+Es_from_signal = abs(S_f).^2;
+
+C_f = fftshift(fft(c, N)) / Fs;
+Es_from_ccf = real(C_f);
+
+figure;
+subplot(2,1,1);
+plot(freq, Es_from_signal, 'b', 'LineWidth', 2);
+xlim([-3 3]);
+grid on;
+
+subplot(2,1,2);
+plot(freq, Es_from_ccf, 'r--', 'LineWidth', 2);
+xlim([-3 3]);
+grid on;
+
+max_diff = max(abs(Es_from_signal - Es_from_ccf));
+disp(max_diff);
