@@ -52,7 +52,6 @@ xlim([-2*tau 2*T]); grid on;
 
 
 %2
-
 pkg load signal;
 
 Fs = 100;
@@ -74,25 +73,24 @@ figure;
 
 subplot(2,2,1);
 plot(t, s_rect, 'b', 'LineWidth', 2);
-title('Прямоугольный импульс s(t)');
-xlabel('t, сек'); grid on;
+title('1. Прямоугольный импульс s(t)');
+xlabel('t, сек'); ylabel('Амплитуда'); grid on;
 ylim([-0.2 1.2]); xlim([-2 2]);
 
 subplot(2,2,2);
-plot(t, s_tri, 'm', 'LineWidth', 2);
-title('Треугольный импульс s(t)');
-xlabel('t, сек'); grid on;
-ylim([-0.2 1.2]); xlim([-2 2]);
+plot(t_c, B_rect, 'b', 'LineWidth', 2);
+title('2. АКФ прямоугольного импульса');
+xlabel('\tau, сек'); ylabel('B(\tau)'); grid on;
+xlim([-2.5 2.5]);
 
 subplot(2,2,3);
-plot(t_c, B_rect, 'b', 'LineWidth', 2);
-title('АКФ прямоугольного импульса');
-xlabel('\tau, сек'); grid on;
-xlim([-2.5 2.5]);
+plot(t, s_tri, 'm', 'LineWidth', 2);
+title('3. Треугольный импульс s(t)');
+xlabel('t, сек'); ylabel('Амплитуда'); grid on;
+ylim([-0.2 1.2]); xlim([-2 2]);
 
 subplot(2,2,4);
 plot(t_c, B_tri, 'm', 'LineWidth', 2);
-title('АКФ треугольного импульса');
-xlabel('\tau, сек'); grid on;
+title('4. АКФ треугольного импульса');
+xlabel('\tau, сек'); ylabel('B(\tau)'); grid on;
 xlim([-2.5 2.5]);
-
