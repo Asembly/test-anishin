@@ -80,49 +80,61 @@ clear; clc; close all;
 
 Fs = 2000;
 t = -2:1/Fs:2;
-A = 1; tau = 0.5;
+A = 1; 
+tau = 0.5;
 
 s = A * (abs(t) <= tau/2);
 
-% Прямое вычисление АКФ
-[B_direct, lag] = xcorr(s, 'normalized');
+% ========== Прямое вычисление АКФ (БЕЗ нормировки) ==========
+[B_direct, lag] = xcorr(s, 'unbiased');
 lag_time = lag/Fs;
 
-% Через энергетический спектр (теорема Винера-Хинчина)
+% ========== Через энергетический спектр ==========
 N = length(s);
 S = fft(s);
 E_spec = abs(S).^2 / N;      % энергетический спектр
 B_from_spec = real(ifft(E_spec));
 B_from_spec = fftshift(B_from_spec);
-B_from_spec = B_from_spec / max(B_from_spec);
 
-% Обрезаем до той же длины, что и B_direct
-B_from_spec = B_from_spec(1:length(B_direct));
+% ========== ВИЗУАЛИЗАЦИЯ ==========
+figure('Position', [100, 100, 1200, 900]);
 
-figure('Position', [100, 100, 1000, 800]);
-
-subplot(2,2,1);
+subplot(3,2,1);
 plot(t, s, 'b', 'LineWidth', 1.5);
-grid on; title('Прямоугольный импульс (A=1, \tau=0.5)');
+grid on; title('1. Прямоугольный импульс s(t)');
 xlabel('t (сек)'); ylabel('s(t)'); xlim([-1, 1]);
 
-subplot(2,2,2);
-f = (0:N/2-1)*Fs/N;
-plot(f, E_spec(1:N/2), 'g', 'LineWidth', 1.5);
-grid on; title('Энергетический спектр |S(f)|^2');
+subplot(3,2,2);
+f = (0:N-1)*Fs/N;
+plot(f(1:N/2), E_spec(1:N/2), 'g', 'LineWidth', 1.5);
+grid on; title('2. Энергетический спектр |S(f)|^2');
 xlabel('f (Гц)'); ylabel('|S(f)|^2');
+xlim([0, 50]);
 
-subplot(2,2,3);
+subplot(3,2,3);
 plot(lag_time, B_direct, 'r', 'LineWidth', 1.5);
-grid on; title('АКФ (прямое вычисление, xcorr)');
-xlabel('\tau (сек)'); ylabel('B(\tau)/max'); xlim([-1.5, 1.5]);
+grid on; title('3. АКФ (прямое вычисление: xcorr)');
+xlabel('\tau (сек)'); ylabel('B(\tau)'); xlim([-1.5, 1.5]);
 
-subplot(2,2,4);
+subplot(3,2,4);
 plot(lag_time, B_from_spec, 'm--', 'LineWidth', 1.5);
-grid on; title('АКФ (через спектр: ifft(|S(f)|^2))');
-xlabel('\tau (сек)'); ylabel('B(\tau)/max'); xlim([-1.5, 1.5]);
+grid on; title('4. АКФ (через спектр: ifft(|S(f)|^2))');
+xlabel('\tau (сек)'); ylabel('B(\tau)'); xlim([-1.5, 1.5]);
 
-sgtitle('Проверка связи АКФ и энергетического спектра (теорема Винера-Хинчина)', 'FontSize', 12);
+subplot(3,2,5);
+plot(lag_time, B_direct - B_from_spec', 'k', 'LineWidth', 1);
+grid on; title('5. Разница между двумя методами (должна быть ~0)');
+xlabel('\tau (сек)'); ylabel('Погрешность'); xlim([-1.5, 1.5]);
+
+subplot(3,2,6);
+plot(f(1:N/2), E_spec(1:N/2), 'g', 'LineWidth', 1.5); hold on;
+title('6. Энергетический спектр с параметрами');
+xlabel('f (Гц)'); ylabel('|S(f)|^2');
+xlim([0, 50]);
+text(15, max(E_spec(1:N/2))*0.7, sprintf('Ширина главного лепестка: ~%.2f Гц', 1/tau), 'FontSize', 10);
+grid on;
+
+sgtitle('Проверка теоремы Винера-Хинчина: АКФ ⟷ Энергетический спектр', 'FontSize', 12);
 
 %3
 
