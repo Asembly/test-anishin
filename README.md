@@ -55,36 +55,44 @@ xlim([-2*tau 2*T]); grid on;
 
 pkg load signal;
 
-Fs = 200;
-A = 1;
-tau = 2;
-Tl = 10;
-t = -Tl:1/Fs:Tl;
+Fs = 100;
+dt = 1/Fs;
+t = -3:dt:3;
 
-s = zeros(size(t));
-s(abs(t) <= tau/2) = A;
+s_rect = zeros(size(t));
+s_rect(abs(t) <= 1) = 1;
 
-c = xcorr(s, s) / Fs;
+s_tri = zeros(size(t));
+s_tri(abs(t) <= 1) = 1 - abs(t(abs(t) <= 1));
 
-N = 2^13;
-freq = (-N/2:N/2-1) * (Fs/N);
+B_rect = xcorr(s_rect, s_rect) * dt;
+B_tri = xcorr(s_tri, s_tri) * dt;
 
-S_f = fftshift(fft(s, N)) / Fs;
-Es_from_signal = abs(S_f).^2;
-
-C_f = fftshift(fft(c, N)) / Fs;
-Es_from_ccf = real(C_f);
+t_c = (0:length(B_rect)-1)/Fs - 6;
 
 figure;
-subplot(2,1,1);
-plot(freq, Es_from_signal, 'b', 'LineWidth', 2);
-xlim([-3 3]);
-grid on;
 
-subplot(2,1,2);
-plot(freq, Es_from_ccf, 'r--', 'LineWidth', 2);
-xlim([-3 3]);
-grid on;
+subplot(2,2,1);
+plot(t, s_rect, 'b', 'LineWidth', 2);
+title('Прямоугольный импульс s(t)');
+xlabel('t, сек'); grid on;
+ylim([-0.2 1.2]); xlim([-2 2]);
 
-max_diff = max(abs(Es_from_signal - Es_from_ccf));
-disp(max_diff);
+subplot(2,2,2);
+plot(t, s_tri, 'm', 'LineWidth', 2);
+title('Треугольный импульс s(t)');
+xlabel('t, сек'); grid on;
+ylim([-0.2 1.2]); xlim([-2 2]);
+
+subplot(2,2,3);
+plot(t_c, B_rect, 'b', 'LineWidth', 2);
+title('АКФ прямоугольного импульса');
+xlabel('\tau, сек'); grid on;
+xlim([-2.5 2.5]);
+
+subplot(2,2,4);
+plot(t_c, B_tri, 'm', 'LineWidth', 2);
+title('АКФ треугольного импульса');
+xlabel('\tau, сек'); grid on;
+xlim([-2.5 2.5]);
+
