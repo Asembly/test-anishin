@@ -112,3 +112,54 @@ for k = 1:length(df_list)
     end
     sgtitle(['Разрешение по частоте: \Deltaf = ', num2str(df), ' Гц']);
 end
+
+
+clear; close all;
+
+% Параметры
+Fs = 200;           % высокая частота дискретизации (чтобы не влиять)
+f_center = 10;      % центральная частота
+
+% Разности частот (Δf)
+df_list = [0.5, 0.3, 0.1, 0.01];
+
+for k = 1:length(df_list)
+    df = df_list(k);
+    
+    % Две гармоники с разностью df
+    f1 = f_center - df/2;
+    f2 = f_center + df/2;
+    
+    % Длительности, кратные 1/df
+    Tl_vals = [0.5/df, 1/df, 2/df, 4/df];
+    
+    figure('Position', [100, 100, 1200, 800]);
+    sgtitle(['Δf = ', num2str(df), ' Гц']);
+    
+    for i = 1:length(Tl_vals)
+        Tl = Tl_vals(i);
+        t = 0:1/Fs:Tl;
+        
+        % Сигнал: сумма двух синусоид
+        s = sin(2*pi*f1*t) + sin(2*pi*f2*t);
+        
+        % Спектр
+        Y = fft(s);
+        n = length(s);
+        Y_mag = abs(Y(1:floor(n/2)+1)) / n * 2;
+        freq = (0:floor(n/2)) * (Fs / n);
+        
+        subplot(2, 2, i);
+        plot(freq, Y_mag, 'b', 'LineWidth', 1.5);
+        title(sprintf('T_l = %.2f c  (%.1f / Δf)', Tl, Tl*df));
+        xlabel('f, Гц');
+        ylabel('|S(f)|');
+        xlim([f_center - 2*df, f_center + 2*df]);
+        ylim([0, 1.2]);
+        grid on;
+        
+        % Отметить истинные частоты
+        xline(f1, 'r--', sprintf('f1=%.3f', f1), 'LabelOrientation', 'horizontal');
+        xline(f2, 'r--', sprintf('f2=%.3f', f2), 'LabelOrientation', 'horizontal');
+    end
+end
