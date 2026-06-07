@@ -1,0 +1,122 @@
+% ЛАБОРАТОРНАЯ РАБОТА №4 - Виды модуляции: АМ, ЧМ, ФМ
+clear; clc; close all;
+
+%% Параметры
+Fs = 1000;              % Частота дискретизации (Гц)
+T_total = 2;            % Общая длительность сигнала (сек)
+t = 0:1/Fs:T_total-1/Fs; % Временная ось
+f0 = 10;                % Несущая частота (Гц)
+A = 1;                  % Амплитуда несущей
+k = 1;                  % Коэффициент модуляции
+
+%% Формирование исходных сигналов
+
+% 1) Несимметричный треугольный импульс (T = 1 сек)
+T_triangle = 1;
+s1 = zeros(size(t));
+idx1 = t <= T_triangle;
+s1(idx1) = A * t(idx1) / T_triangle;
+
+% 2) Одиночный импульс длительностью tau (будем варьировать)
+tau_values = [0.1, 0.5, 1.0];
+
+% 3) Гармонический сигнал F = 1 Гц
+F_harm = 1;
+s3 = A * cos(2*pi*F_harm*t);
+
+%% Функции модуляции
+mod_AM = @(s) (A + k*s) .* cos(2*pi*f0*t);
+mod_PM = @(s) A * cos(2*pi*f0*t + k*s);
+mod_FM = @(s) A * cos(2*pi*f0*t + k*cumsum(s)/Fs);
+
+%% Функция для построения осциллограмм и спектров
+plot_signals = @(s, s_mod, title_str, idx) ...
+    figure('Position', [100, 100*idx, 1200, 800]); ...
+    subplot(2,2,1); plot(t, s); grid on; title(['Исходный сигнал: ', title_str]); xlabel('t, сек'); ylabel('Amplitude'); ...
+    subplot(2,2,2); plot(t, cos(2*pi*f0*t)); grid on; title('Несущее колебание'); xlabel('t, сек'); ylabel('Amplitude'); ...
+    subplot(2,2,3); plot(t, s_mod); grid on; title(['Модулированный сигнал: ', title_str]); xlabel('t, сек'); ylabel('Amplitude'); ...
+    subplot(2,2,4); ...
+    N = length(s); ...
+    f = (0:N-1)*Fs/N; ...
+    S_fft = abs(fft(s))/N; ...
+    S_mod_fft = abs(fft(s_mod))/N; ...
+    plot(f(1:N/2), S_mod_fft(1:N/2)); grid on; title(['Амплитудный спектр: ', title_str]); xlabel('Частота, Гц'); ylabel('|S(f)|'); ...
+    xlim([0, 3*f0]);
+
+%% === ЗАДАНИЕ 1: Несимметричный треугольный импульс ===
+fprintf('Обработка треугольного импульса...\n');
+
+s_AM1 = mod_AM(s1);
+s_PM1 = mod_PM(s1);
+s_FM1 = mod_FM(s1);
+
+% Осциллограммы и спектры для АМ
+figure('Position', [100, 100, 1200, 800]);
+subplot(2,2,1); plot(t, s1); grid on; title('Исходный: треугольный импульс'); xlabel('t, сек');
+subplot(2,2,2); plot(t, cos(2*pi*f0*t)); grid on; title('Несущая'); xlabel('t, сек');
+subplot(2,2,3); plot(t, s_AM1); grid on; title('АМ - треугольный импульс'); xlabel('t, сек');
+subplot(2,2,4); N=length(s1); f=(0:N-1)*Fs/N; S_mod_fft=abs(fft(s_AM1))/N; plot(f(1:N/2), S_mod_fft(1:N/2)); grid on; title('Спектр АМ'); xlabel('Гц'); xlim([0, 3*f0]);
+
+% Осциллограммы и спектры для ФМ
+figure('Position', [100, 200, 1200, 800]);
+subplot(2,2,1); plot(t, s1); grid on; title('Исходный: треугольный импульс');
+subplot(2,2,2); plot(t, cos(2*pi*f0*t)); grid on; title('Несущая');
+subplot(2,2,3); plot(t, s_PM1); grid on; title('ФМ - треугольный импульс');
+subplot(2,2,4); S_mod_fft=abs(fft(s_PM1))/N; plot(f(1:N/2), S_mod_fft(1:N/2)); grid on; title('Спектр ФМ'); xlim([0, 3*f0]);
+
+% Осциллограммы и спектры для ЧМ
+figure('Position', [100, 300, 1200, 800]);
+subplot(2,2,1); plot(t, s1); grid on; title('Исходный: треугольный импульс');
+subplot(2,2,2); plot(t, cos(2*pi*f0*t)); grid on; title('Несущая');
+subplot(2,2,3); plot(t, s_FM1); grid on; title('ЧМ - треугольный импульс');
+subplot(2,2,4); S_mod_fft=abs(fft(s_FM1))/N; plot(f(1:N/2), S_mod_fft(1:N/2)); grid on; title('Спектр ЧМ'); xlim([0, 3*f0]);
+
+%% === ЗАДАНИЕ 2: Одиночный импульс (tau = 0.1, 0.5, 1 сек) ===
+for i = 1:3
+    tau = tau_values(i);
+    s2 = zeros(size(t));
+    idx_pulse = t <= tau;
+    s2(idx_pulse) = A;
+    
+    s_AM2 = mod_AM(s2);
+    s_PM2 = mod_PM(s2);
+    s_FM2 = mod_FM(s2);
+    
+    figure('Position', [100, 100*i, 1200, 800]);
+    subplot(3,2,1); plot(t, s2); grid on; title(['Исходный: импульс tau=', num2str(tau), ' сек']); xlabel('t, сек');
+    subplot(3,2,2); plot(t, cos(2*pi*f0*t)); grid on; title('Несущая');
+    subplot(3,2,3); plot(t, s_AM2); grid on; title(['АМ tau=', num2str(tau)]); xlabel('t, сек');
+    subplot(3,2,4); plot(t, s_PM2); grid on; title(['ФМ tau=', num2str(tau)]);
+    subplot(3,2,5); plot(t, s_FM2); grid on; title(['ЧМ tau=', num2str(tau)]); xlabel('t, сек');
+    subplot(3,2,6); N=length(s2); f=(0:N-1)*Fs/N; S_mod_fft=abs(fft(s_AM2))/N; plot(f(1:N/2), S_mod_fft(1:N/2)); grid on; title('Спектр АМ'); xlabel('Гц'); xlim([0, 3*f0]);
+end
+
+%% === ЗАДАНИЕ 3: Гармонический сигнал F = 1 Гц ===
+fprintf('Обработка гармонического сигнала F=1 Гц...\n');
+
+s_AM3 = mod_AM(s3);
+s_PM3 = mod_PM(s3);
+s_FM3 = mod_FM(s3);
+
+% АМ
+figure('Position', [100, 400, 1200, 800]);
+subplot(2,2,1); plot(t, s3); grid on; title('Исходный: гармонический F=1 Гц'); xlabel('t, сек');
+subplot(2,2,2); plot(t, cos(2*pi*f0*t)); grid on; title('Несущая');
+subplot(2,2,3); plot(t, s_AM3); grid on; title('АМ - гармонический сигнал'); xlabel('t, сек');
+subplot(2,2,4); N=length(s3); f=(0:N-1)*Fs/N; S_mod_fft=abs(fft(s_AM3))/N; plot(f(1:N/2), S_mod_fft(1:N/2)); grid on; title('Спектр АМ'); xlabel('Гц'); xlim([0, 3*f0]);
+
+% ФМ
+figure('Position', [100, 500, 1200, 800]);
+subplot(2,2,1); plot(t, s3); grid on; title('Исходный: гармонический F=1 Гц');
+subplot(2,2,2); plot(t, cos(2*pi*f0*t)); grid on; title('Несущая');
+subplot(2,2,3); plot(t, s_PM3); grid on; title('ФМ - гармонический сигнал');
+subplot(2,2,4); S_mod_fft=abs(fft(s_PM3))/N; plot(f(1:N/2), S_mod_fft(1:N/2)); grid on; title('Спектр ФМ'); xlim([0, 3*f0]);
+
+% ЧМ
+figure('Position', [100, 600, 1200, 800]);
+subplot(2,2,1); plot(t, s3); grid on; title('Исходный: гармонический F=1 Гц');
+subplot(2,2,2); plot(t, cos(2*pi*f0*t)); grid on; title('Несущая');
+subplot(2,2,3); plot(t, s_FM3); grid on; title('ЧМ - гармонический сигнал');
+subplot(2,2,4); S_mod_fft=abs(fft(s_FM3))/N; plot(f(1:N/2), S_mod_fft(1:N/2)); grid on; title('Спектр ЧМ'); xlim([0, 3*f0]);
+
+fprintf('Лабораторная работа выполнена. Все осциллограммы и спектры построены.\n');
