@@ -134,7 +134,6 @@ for k = 1:length(df_list)
     Tl_vals = [0.5/df, 1/df, 2/df, 4/df];
     
     figure('Position', [100, 100, 1200, 800]);
-    sgtitle(['Δf = ', num2str(df), ' Гц']);
     
     for i = 1:length(Tl_vals)
         Tl = Tl_vals(i);
