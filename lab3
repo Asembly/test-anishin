@@ -1,5 +1,145 @@
 clear; close all;
 
+%% ========== Пункт 1 ==========
+% Аналитический сигнал: f1=1 Гц, A=1, фаза pi/4, Tl=10
+f1 = 1;
+A1 = 1;
+phi1 = pi/4;
+Tl = 10;
+
+% Частоты дискретизации
+Fs_list = [1, 3, 5, 20];
+
+% Непрерывное время для аналитического сигнала (высокое разрешение)
+t_cont = linspace(0, Tl, 10000);
+s_cont = A1 * sin(2*pi*f1*t_cont + phi1);
+
+figure('Position', [50, 500, 1200, 400]);
+
+% Графики сигналов (пункт 1)
+for i = 1:length(Fs_list)
+    Fs = Fs_list(i);
+    t_disc = 0:1/Fs:Tl;
+    s_disc = A1 * sin(2*pi*f1*t_disc + phi1);
+    
+    subplot(2, 4, i);
+    plot(t_cont, s_cont, 'b-', 'LineWidth', 1); hold on;
+    stem(t_disc, s_disc, 'r', 'LineWidth', 1.5, 'MarkerSize', 4);
+    title(sprintf('Fs = %d Гц', Fs));
+    xlabel('t, c'); ylabel('s(t)');
+    grid on;
+    legend('аналоговый', 'дискретный', 'Location', 'best');
+    
+    % Спектр (амплитудный)
+    subplot(2, 4, i+4);
+    N = length(s_disc);
+    Y = fft(s_disc);
+    Y_mag = abs(Y(1:floor(N/2)+1)) / N * 2;
+    freq = (0:floor(N/2)) * (Fs / N);
+    stem(freq, Y_mag, 'b', 'LineWidth', 1.5, 'MarkerSize', 4);
+    xlabel('f, Гц'); ylabel('|S(f)|');
+    title(sprintf('Спектр, Fs = %d Гц', Fs));
+    xlim([0, Fs/2 + 0.5]);
+    grid on;
+    yline(1, 'r--', 'A=1');
+end
+sgtitle('Пункт 1: сигнал 1 Гц, фаза π/4');
+
+%% ========== Пункт 2 ==========
+% Сигнал: f1=1 Гц, A1=0.7, phi1=0; f2=3 Гц, A2=0.9, phi2=pi/8, Tl=10
+f1_2 = 1; A1_2 = 0.7; phi1_2 = 0;
+f2_2 = 3; A2_2 = 0.9; phi2_2 = pi/8;
+Tl = 10;
+
+s_cont2 = A1_2 * sin(2*pi*f1_2*t_cont + phi1_2) + A2_2 * sin(2*pi*f2_2*t_cont + phi2_2);
+
+figure('Position', [50, 50, 1200, 400]);
+
+for i = 1:length(Fs_list)
+    Fs = Fs_list(i);
+    t_disc = 0:1/Fs:Tl;
+    s_disc = A1_2 * sin(2*pi*f1_2*t_disc + phi1_2) + A2_2 * sin(2*pi*f2_2*t_disc + phi2_2);
+    
+    subplot(2, 4, i);
+    plot(t_cont, s_cont2, 'b-', 'LineWidth', 1); hold on;
+    stem(t_disc, s_disc, 'r', 'LineWidth', 1.5, 'MarkerSize', 4);
+    title(sprintf('Fs = %d Гц', Fs));
+    xlabel('t, c'); ylabel('s(t)');
+    grid on;
+    legend('аналоговый', 'дискретный', 'Location', 'best');
+    
+    subplot(2, 4, i+4);
+    N = length(s_disc);
+    Y = fft(s_disc);
+    Y_mag = abs(Y(1:floor(N/2)+1)) / N * 2;
+    freq = (0:floor(N/2)) * (Fs / N);
+    stem(freq, Y_mag, 'b', 'LineWidth', 1.5, 'MarkerSize', 4);
+    xlabel('f, Гц'); ylabel('|S(f)|');
+    title(sprintf('Спектр, Fs = %d Гц', Fs));
+    xlim([0, max(5, Fs/2)]);
+    grid on;
+    % Отметим истинные амплитуды
+    yline(A1_2, 'r--', sprintf('A1=%.1f', A1_2));
+    yline(A2_2, 'g--', sprintf('A2=%.1f', A2_2));
+end
+sgtitle('Пункт 2: сумма гармоник 1 Гц и 3 Гц');
+
+%% ========== Пункт 3 ==========
+% Сумма 2 гармоник с девиацией Δf, f_center = 2 Гц
+f_center = 2;
+df_list = [0.5, 0.3, 0.1, 0.01];
+phi1_3 = 0;
+phi2_3 = pi/8;
+Tl = 10;  % фиксированная длительность для начала
+Fs_high = 50; % высокая частота для анализа (чтобы не влиять на разрешение)
+
+figure('Position', [100, 100, 1200, 800]);
+
+for k = 1:length(df_list)
+    df = df_list(k);
+    f1_3 = f_center - df/2;
+    f2_3 = f_center + df/2;
+    
+    % Дискретизация с высокой частотой (чтобы увидеть истинный спектр)
+    t = 0:1/Fs_high:Tl;
+    s = sin(2*pi*f1_3*t + phi1_3) + sin(2*pi*f2_3*t + phi2_3);
+    
+    N = length(s);
+    Y = fft(s);
+    Y_mag = abs(Y(1:floor(N/2)+1)) / N * 2;
+    freq = (0:floor(N/2)) * (Fs_high / N);
+    
+    subplot(2, 2, k);
+    plot(freq, Y_mag, 'b', 'LineWidth', 1.5);
+    title(sprintf('Δf = %.2f Гц, T_l = %d c, F_s = %d Гц', df, Tl, Fs_high));
+    xlabel('f, Гц'); ylabel('|S(f)|');
+    xlim([f_center - 2, f_center + 2]);
+    grid on;
+    hold on;
+    xline(f1_3, 'r--', sprintf('%.3f', f1_3));
+    xline(f2_3, 'r--', sprintf('%.3f', f2_3));
+    
+    % Находим минимальное Tl, при котором видны оба пика
+    % Теоретически: Tl_min = 1/df
+    Tl_min = 1/df;
+    text(f_center, max(Y_mag)*0.8, sprintf('T_l,min = %.2f c', Tl_min), ...
+        'HorizontalAlignment', 'center', 'BackgroundColor', 'w');
+end
+sgtitle('Пункт 3: разрешение спектральных составляющих');
+
+% Дополнительно — демонстрация влияния Tl для одного из Δf
+disp('=== Пункт 3: объяснение ===');
+disp('Разрешение по частоте Δf_res = 1/Tl (в Гц)');
+disp('Чтобы различить две гармоники с разностью Δf, нужно Tl >= 1/Δf.');
+disp('Это следует из свойства преобразования Фурье: чем длиннее сигнал,');
+disp('тем уже главный лепест спектра (ширина пропорциональна 1/Tl).');
+disp('При Tl = 1/Δf частоты попадают в соседние отсчёты ДПФ (разрешаются).');
+
+%pizdec
+
+
+clear; close all;
+
 % Параметры сигнала
 f1 = 1; A1 = 1; phi1 = pi/4;
 Tl = 10;
