@@ -1,6 +1,146 @@
 clear; close all;
 
 %% ========== Пункт 3 ==========
+% Определение минимального Tl для разрешения двух гармоник
+% Для каждой частоты дискретизации Fs = 1, 3, 5, 20 Гц
+% Для каждой девиации Δf = 0.5, 0.3, 0.1, 0.01 Гц
+
+f_center = 2;        % центральная частота
+df_list = [0.5, 0.3, 0.1, 0.01];
+Fs_list = [1, 3, 5, 20];
+phi1 = 0;
+phi2 = pi/8;
+
+% Создаём отдельную фигуру для каждого Δf
+for k = 1:length(df_list)
+    df = df_list(k);
+    f1 = f_center - df/2;
+    f2 = f_center + df/2;
+    
+    figure('Position', [50, 50, 1400, 900]);
+    sgtitle(sprintf('Δf = %.2f Гц, f1 = %.3f Гц, f2 = %.3f Гц', df, f1, f2));
+    
+    % Для каждой частоты дискретизации
+    for i = 1:length(Fs_list)
+        Fs = Fs_list(i);
+        
+        % Подбираем минимальное Tl, при котором видны оба пика
+        % Теоретически: Tl_min_teor = 1/df
+        Tl_min_teor = 1/df;
+        
+        % Пробуем разные Tl: от маленького до большого
+        Tl_candidates = [0.5/df, 1/df, 2/df, 4/df, 8/df];
+        Tl_found = [];
+        
+        subplot(2, 2, i);
+        
+        % Перебираем кандидатов, чтобы найти минимальный Tl
+        for j = 1:length(Tl_candidates)
+            Tl = Tl_candidates(j);
+            t = 0:1/Fs:Tl;
+            
+            % Формируем сигнал
+            s = sin(2*pi*f1*t + phi1) + sin(2*pi*f2*t + phi2);
+            
+            % Спектр
+            N = length(s);
+            Y = fft(s);
+            Y_mag = abs(Y(1:floor(N/2)+1)) / N * 2;
+            freq = (0:floor(N/2)) * (Fs / N);
+            
+            % Анализируем: видны ли два пика?
+            % Находим локальные максимумы в окрестности f1 и f2
+            idx_range = find(freq >= f_center - 2*df & freq <= f_center + 2*df);
+            if length(idx_range) >= 3
+                [~, peak_idx] = findpeaks(Y_mag, 'MinPeakHeight', 0.3);
+                peaks_freq = freq(peak_idx);
+                peaks_in_range = peaks_freq(peaks_freq >= f_center - 2*df & peaks_freq <= f_center + 2*df);
+                
+                % Если найдено два пика в нужном диапазоне
+                if length(peaks_in_range) >= 2
+                    Tl_found = Tl;
+                    break;
+                end
+            end
+        end
+        
+        % Если не нашли автоматически, берём последний кандидат
+        if isempty(Tl_found)
+            Tl_found = Tl_candidates(end);
+        end
+        
+        % Строим график для найденного Tl
+        t = 0:1/Fs:Tl_found;
+        s = sin(2*pi*f1*t + phi1) + sin(2*pi*f2*t + phi2);
+        
+        N = length(s);
+        Y = fft(s);
+        Y_mag = abs(Y(1:floor(N/2)+1)) / N * 2;
+        freq = (0:floor(N/2)) * (Fs / N);
+        
+        plot(freq, Y_mag, 'b-o', 'LineWidth', 1.5, 'MarkerSize', 4);
+        hold on;
+        
+        % Отметить истинные частоты
+        xline(f1, 'r--', sprintf('%.3f', f1), 'LabelOrientation', 'horizontal', 'FontSize', 8);
+        xline(f2, 'r--', sprintf('%.3f', f2), 'LabelOrientation', 'horizontal', 'FontSize', 8);
+        
+        title(sprintf('Fs = %d Гц, T_l,min = %.2f c (%.1f/Δf)', Fs, Tl_found, Tl_found*df));
+        xlabel('f, Гц');
+        ylabel('|S(f)|');
+        xlim([f_center - 2*df, f_center + 2*df]);
+        ylim([0, 2.2]);
+        grid on;
+        
+        % Теоретическое значение
+        text(f_center, 1.9, sprintf('Теория: T_l = %.2f c (1/Δf)', Tl_min_teor), ...
+            'HorizontalAlignment', 'center', 'BackgroundColor', 'w', 'FontSize', 9);
+        
+        % Показать частоту Найквиста
+        fn = Fs/2;
+        if fn < f2
+            text(f_center, 0.3, sprintf('⚠ Наложение! Fs/2 = %.1f < f2 = %.1f', fn, f2), ...
+                'HorizontalAlignment', 'center', 'Color', 'r', 'FontSize', 9);
+        end
+    end
+end
+
+%% Дополнительная сводная таблица
+disp('========== РЕЗУЛЬТАТЫ ==========');
+disp('Для каждого Δf найдено минимальное Tl (в секундах) при разных Fs:');
+disp(' ');
+fprintf('Δf\\Fs\t1\t3\t5\t20\n');
+for k = 1:length(df_list)
+    df = df_list(k);
+    f1 = f_center - df/2;
+    f2 = f_center + df/2;
+    fprintf('%.2f\t', df);
+    for i = 1:length(Fs_list)
+        Fs = Fs_list(i);
+        Tl_min_teor = 1/df;
+        % Учитываем ограничения дискретизации
+        if Fs/2 < f2
+            fprintf('*\t');
+        else
+            fprintf('%.1f\t', Tl_min_teor);
+        end
+    end
+    fprintf('\n');
+end
+disp(' ');
+disp('* - невозможно из-за нарушения теоремы Котельникова (Fs/2 < f2)');
+disp('Теоретическое минимальное Tl = 1/Δf');
+
+
+
+
+
+
+
+
+clear; close all;
+
+%% ========== Пункт 3 ==========
 % Сумма 2 гармоник с девиацией частоты Δf
 % Частоты дискретизации: 1, 3, 5, 20 Гц
 % Для каждого Δf свой отдельный figure
